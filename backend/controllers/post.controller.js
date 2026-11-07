@@ -4,7 +4,7 @@ import Notification from "../models/notification.model.js";
 import Post from "../models/post.model.js";
 import User from "../models/user.models.js";
 
-const USER_PUBLIC_FIELDS = "-password -email";
+const USER_PUBLIC_FIELDS = "-password -email -likedPosts";
 // uploader.upload() treats any other string as a path on this server and uploads that file.
 const IMAGE_SOURCE_REGEX =
   /^(data:image\/[\w.+-]+;base64,[a-zA-Z0-9+/=\n]+|https?:\/\/\S+)$/;
@@ -52,11 +52,14 @@ export const getLikedPosts = async (req, res) => {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
-    if (!(await User.exists({ _id: id }))) {
+    const user = await User.findById(id).select("likedPosts");
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const posts = await findPostsNewestFirst({ likes: id });
+    const posts = await findPostsNewestFirst({
+      _id: { $in: user.likedPosts },
+    });
 
     res.status(200).json(posts);
   } catch (error) {
@@ -150,10 +153,16 @@ export const likeUnlikePost = async (req, res) => {
     const isLiked = post.likes.some((likerId) => likerId.equals(req.userId));
     const operator = isLiked ? "$pull" : "$addToSet";
 
-    await Post.updateOne(
-      { _id: post._id },
-      { [operator]: { likes: req.userId } }
-    );
+    await Promise.all([
+      Post.updateOne(
+        { _id: post._id },
+        { [operator]: { likes: req.userId } }
+      ),
+      User.updateOne(
+        { _id: req.userId },
+        { [operator]: { likedPosts: post._id } }
+      ),
+    ]);
 
     if (!isLiked && !post.user.equals(req.userId)) {
       await Notification.create({
@@ -224,6 +233,10 @@ export const deletePost = async (req, res) => {
       await cloudinary.uploader.destroy(publicId);
     }
 
+    await User.updateMany(
+      { likedPosts: post._id },
+      { $pull: { likedPosts: post._id } }
+    );
     await post.deleteOne();
 
     res.status(200).json({ message: "Post deleted successfully" });

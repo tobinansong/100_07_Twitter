@@ -1,0 +1,37 @@
+{
+  "info": {
+    "name": "Notifications",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Get Notifications",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notifications"]
+        },
+        "description": "Requires the jwt cookie (log in first). Returns the current user's notifications, newest first, and marks the returned ones as read."
+      }
+    },
+    {
+      "name": "Delete Notifications",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notifications"]
+        },
+        "description": "Requires the jwt cookie (log in first). Deletes all of the current user's notifications."
+      }
+    }
+  ]
+}

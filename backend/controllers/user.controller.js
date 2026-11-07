@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+import Notification from "../models/notification.model.js";
 import User from "../models/user.models.js";
 
 const SUGGESTED_USERS_LIMIT = 4;
@@ -60,7 +61,7 @@ export const followUnfollowUser = async (req, res) => {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
-    if (id === req.userId) {
+    if (req.userId.equals(id)) {
       return res.status(400).json({ error: "You can't follow yourself" });
     }
 
@@ -87,6 +88,14 @@ export const followUnfollowUser = async (req, res) => {
         { [operator]: { followers: currentUser._id } }
       ),
     ]);
+
+    if (!isFollowing) {
+      await Notification.create({
+        from: currentUser._id,
+        to: targetUser._id,
+        type: "follow",
+      });
+    }
 
     res.status(200).json({
       message: isFollowing

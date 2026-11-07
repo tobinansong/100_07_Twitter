@@ -18,6 +18,7 @@ A Twitter-style social media backend with accounts, profiles, follows, posts, li
 - **Social graph:** follow and unfollow users, and get suggestions for who to follow
 - **Posts:** create posts with text, an image or both, then like, comment on and delete them
 - **Feeds:** browse all posts, posts from people you follow, one user's posts, or a user's liked posts
+- **Notifications:** see who followed you or liked your posts, and clear your notifications
 - **Images:** post images are uploaded to Cloudinary, and removed when the post is deleted
 - **Privacy:** password hashes are never returned, and other users' email addresses are hidden
 
@@ -125,6 +126,15 @@ Fields accepted by `/api/users/update`: `fullName`, `username`, `email`, `bio`, 
 
 `img` must be an `http(s)` image URL or a base64 `data:image/...` string.
 
+### Notifications: `/api/notifications`
+
+| Method | Path | Access | Body | Description |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/notifications` | Login | None | Get your notifications, newest first, and mark them as read |
+| `DELETE` | `/api/notifications` | Login | None | Delete all your notifications |
+
+The `GET` response shows each notification's `read` value from before the request, so new ones can be highlighted. The next request returns them as read.
+
 ### Example
 
 Log in, save the cookie, then use it to fetch posts:
@@ -139,19 +149,19 @@ curl -b cookies.txt http://localhost:5000/api/posts/all
 
 ### Postman
 
-Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collection.json) to try the auth routes. It doesn't include the user or post routes yet.
+Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collection.json) to try the auth and notification routes. It doesn't include the user or post routes yet.
 
 ## Project structure
 
 ```text
 .
 ├── backend/
-│   ├── controllers/      # Route handlers: auth, user, post
+│   ├── controllers/      # Route handlers: auth, user, post, notification
 │   ├── db/               # MongoDB connection
 │   ├── lib/utils/        # JWT and cookie helper
 │   ├── middleware/       # protectRoute login check
 │   ├── models/           # User, Post, Notification schemas
-│   ├── routes/           # Route definitions: auth, user, post
+│   ├── routes/           # Route definitions: auth, user, post, notification
 │   └── server.js         # App entry point
 ├── frontend/             # Vite + React starter
 ├── .env.example          # Environment variable template
@@ -161,7 +171,7 @@ Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collectio
 ## Current limitations
 
 - **Frontend:** it's the unmodified starter template and makes no API calls. The `cors` package is installed but not enabled yet.
-- **Notifications:** liking someone's post saves a notification, but no route reads them yet, and follows don't create one.
+- **Notifications:** they don't record which post was liked. Unliking or unfollowing doesn't remove a notification, so liking or following again creates another one.
 - **Profile images:** `profileImg` and `coverImg` are saved as plain text. Only post images are uploaded to Cloudinary.
 - **Base64 images:** Express's default 100 KB request limit applies, so larger base64 images are rejected. Image URLs aren't affected.
 - **Tests:** there's no automated test suite yet.
