@@ -1,12 +1,11 @@
-// The API rejects JSON bodies over 100 KB, so images are shrunk in the browser first.
-// Sizes are in base64 characters, which is what counts towards that limit.
-//
-// Avatars and covers get much tighter budgets. The API stores them as plain text and
-// includes them with every post in a feed, so large ones would slow every feed request.
+// The API accepts 5 MB bodies on the routes that take images (see backend/server.js), so
+// images are resized to what the interface can show and kept under that in the browser.
+// Sizes are in base64 characters, which is what counts towards the limit. A post carries
+// one image and a profile update can carry an avatar and a cover together.
 export const IMAGE_PRESETS = {
-  post: { maxSide: 1600, maxChars: 98_000 },
-  avatar: { aspect: 1, maxSide: 320, maxChars: 12_000 },
-  cover: { aspect: 3, maxSide: 1200, maxChars: 30_000 },
+  post: { maxSide: 2048, maxChars: 4_000_000 },
+  avatar: { aspect: 1, maxSide: 512, maxChars: 500_000 },
+  cover: { aspect: 3, maxSide: 1800, maxChars: 1_500_000 },
 };
 
 const QUALITY_STEPS = [0.85, 0.72, 0.6, 0.48];

@@ -96,7 +96,7 @@ export default function EditProfileDialog({ me, onClose, onSaved }) {
     setError(problem);
     if (problem) return;
 
-    // Only changed fields are sent, which keeps unchanged images out of the 100 KB limit.
+    // Only changed fields are sent, so a saved image isn't sent back with every edit.
     const changes = {};
     for (const field of EDITABLE_FIELDS) {
       const value = form[field].trim();

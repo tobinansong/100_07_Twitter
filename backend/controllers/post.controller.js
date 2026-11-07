@@ -1,13 +1,14 @@
-import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
+import {
+  destroyImage,
+  isImageSource,
+  uploadImage,
+} from "../lib/utils/cloudinaryImage.js";
 import Notification from "../models/notification.model.js";
 import Post from "../models/post.model.js";
 import User from "../models/user.models.js";
 
 const USER_PUBLIC_FIELDS = "-password -email -likedPosts";
-// uploader.upload() treats any other string as a path on this server and uploads that file.
-const IMAGE_SOURCE_REGEX =
-  /^(data:image\/[\w.+-]+;base64,[a-zA-Z0-9+/=\n]+|https?:\/\/\S+)$/;
 
 const findPostsNewestFirst = (filter = {}) =>
   Post.find(filter)
@@ -103,7 +104,7 @@ export const createPost = async (req, res) => {
       return res.status(400).json({ error: "Post must have text or an image" });
     }
 
-    if (img && !IMAGE_SOURCE_REGEX.test(img)) {
+    if (img && !isImageSource(img)) {
       return res.status(400).json({ error: "Invalid image" });
     }
 
@@ -111,11 +112,7 @@ export const createPost = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    let imgUrl;
-    if (img) {
-      const uploadedImage = await cloudinary.uploader.upload(img);
-      imgUrl = uploadedImage.secure_url;
-    }
+    const imgUrl = img ? await uploadImage(img) : undefined;
 
     const post = await Post.create({
       user: req.userId,
@@ -226,11 +223,9 @@ export const deletePost = async (req, res) => {
       return res.status(403).json({ error: "You can only delete your own posts" });
     }
 
-    // Image first: destroy() succeeds on a missing image, so a failed delete can be retried.
+    // Image first, so a failed delete leaves the post in place to retry.
     if (post.img) {
-      // Uploads use no folder, so the public id is the URL's file name without its extension.
-      const publicId = post.img.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(publicId);
+      await destroyImage(post.img);
     }
 
     await User.updateMany(

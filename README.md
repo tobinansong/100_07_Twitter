@@ -17,7 +17,7 @@ A Twitter-style social network called Perigee, with accounts, profiles, follows,
 - **Posts:** create posts with text, an image or both, then like, comment on and delete them
 - **Feeds:** browse all posts, posts from people you follow, one user's posts, or a user's liked posts
 - **Notifications:** see who followed you or liked your posts, with an unread badge, and clear your notifications
-- **Images:** post images are compressed in the browser, uploaded to Cloudinary, and removed when the post is deleted
+- **Images:** post images, avatars and covers are resized in the browser and stored on Cloudinary, then removed when they're replaced, cleared or their post is deleted
 - **Privacy:** password hashes are never returned, and other users' email addresses are hidden
 - **Interface:** a responsive orbital console design that works from phones up to wide monitors
 
@@ -97,7 +97,7 @@ The design is a mission console in orbit. Cool ion blue marks information, and h
 
 A few things work around how the API behaves:
 
-- **Image size:** requests are limited to 100 KB, so `frontend/src/lib/image.js` shrinks images in the browser until they fit. A large or detailed photo can lose visible quality.
+- **Image size:** `frontend/src/lib/image.js` resizes images in the browser before sending them: 2048px for posts, 1800px for covers and 512px for avatars. Its budgets need to stay under the API's 5 MB limit in `backend/server.js`.
 - **Unread badge:** `GET /api/notifications` marks everything as read, so polling it can't show what's unread. The browser remembers the newest notification it has shown instead, in `localStorage`, so unread state isn't shared between devices.
 - **Radar:** suggested users are drawn as blips. Their position comes from their user id, and the rescan button asks the API for a new random sample.
 - **Limits set by the interface:** the API doesn't limit lengths, so the 280-character limit on posts and replies and the 160-character limit on bios only apply in the frontend.
@@ -105,6 +105,8 @@ A few things work around how the API behaves:
 ## API reference
 
 The base URL is `http://localhost:5000`. Request bodies can be JSON or URL-encoded form data. Errors are returned as `{ "error": "message" }`.
+
+Request bodies can be up to 100 KB, except on `/api/posts/create` and `/api/users/update`, which accept 5 MB because they can carry base64 images.
 
 Routes marked **Login** need the `jwt` cookie set by signup or login, and return `401` without it.
 
@@ -127,6 +129,8 @@ Routes marked **Login** need the `jwt` cookie set by signup or login, and return
 | `POST` | `/api/users/update` | Login | Any of the fields below | Update your profile |
 
 Fields accepted by `/api/users/update`: `fullName`, `username`, `email`, `bio`, `link`, `profileImg` and `coverImg`. To change your password, send both `currentPassword` and `newPassword`.
+
+`profileImg` and `coverImg` take a base64 `data:image/...` string or an `http(s)` image URL, which is uploaded to Cloudinary, or `""` to clear the image. Any Cloudinary image they replace is deleted. `profileImg` also accepts a preset avatar path, such as `/avatars/boy1.png`.
 
 ### Posts: `/api/posts`
 
@@ -175,7 +179,7 @@ Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collectio
 ├── backend/
 │   ├── controllers/      # Route handlers: auth, user, post, notification
 │   ├── db/               # MongoDB connection
-│   ├── lib/utils/        # JWT and cookie helper
+│   ├── lib/utils/        # JWT cookie and Cloudinary image helpers
 │   ├── middleware/       # protectRoute login check
 │   ├── models/           # User, Post, Notification schemas
 │   ├── routes/           # Route definitions: auth, user, post, notification
@@ -198,8 +202,7 @@ Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collectio
 
 - **Deployment:** Express doesn't serve the built frontend and CORS isn't enabled, so the app only runs through Vite's proxy (`npm run dev` or `npm run preview` in `frontend`). Hosting it needs one of those two added.
 - **Notifications:** they don't record which post was liked. Unliking or unfollowing doesn't remove a notification, so liking or following again creates another one.
-- **Profile images:** `profileImg` and `coverImg` are saved as plain text, and only post images are uploaded to Cloudinary. Uploaded avatars and covers are heavily compressed and stored in MongoDB as base64, and they're sent with every post in a feed, so they make feed responses larger.
-- **Base64 images:** Express's default 100 KB request limit applies. The frontend compresses images to fit, but larger uploads through the API directly are rejected. Image URLs aren't affected.
+- **Image uploads:** requests can't exceed 5 MB, so base64 images over about 3.7 MB are rejected if you call the API directly. The frontend resizes images to fit, and image URLs aren't affected.
 - **Missing endpoints:** there's no search, trending, direct messaging, follower lists or pagination, so the interface doesn't offer them and feeds load every post.
 - **Tests:** there's no automated test suite yet.
 

@@ -13,6 +13,15 @@ import connectMongoDB from "./db/connectMongoDB.js";
 dotenv.config();
 const app = express();
 
+// Images arrive as base64 inside the request body, so only the routes that take them
+// accept more than the default 100 KB. Keep this above the budgets in frontend/src/lib/image.js.
+const IMAGE_BODY_LIMIT = "5mb";
+
+app.use(
+  ["/api/posts/create", "/api/users/update"],
+  express.json({ limit: IMAGE_BODY_LIMIT }),
+  express.urlencoded({ extended: true, limit: IMAGE_BODY_LIMIT })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
