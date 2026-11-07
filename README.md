@@ -84,6 +84,29 @@ To generate a `JWT_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
+## Deployment
+
+In production, Express serves the built frontend, so the whole app runs as one process on one port. It doesn't need Vite or CORS.
+
+```bash
+npm install
+npm run build                    # Installs the frontend's dependencies and builds frontend/dist
+NODE_ENV=production npm start    # PowerShell: $env:NODE_ENV="production"; npm start
+```
+
+Then open `http://localhost:5000`.
+
+On a Node host such as Render or Railway, use these settings:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm install && npm run build` |
+| Start command | `npm start` |
+| Environment variables | Everything in the table above, with `NODE_ENV=production`. Most hosts set `PORT` themselves |
+
+- **HTTPS:** in production the login cookie is marked `Secure`, so logging in only works over HTTPS. Hosts like these provide it. Most browsers also allow it on `localhost`, which is enough to try a production build.
+- **MongoDB Atlas:** allow your host's IP addresses under Network Access, or the server can't reach the database.
+
 ## Interface
 
 The design is a mission console in orbit. Cool ion blue marks information, and hot plasma orange marks anything you can act on or that needs attention. All the design tokens are in `frontend/src/styles/tokens.css`, and the product name is set in `frontend/src/lib/brand.js`.
@@ -185,7 +208,7 @@ Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collectio
 │   ├── routes/           # Route definitions: auth, user, post, notification
 │   └── server.js         # App entry point
 ├── frontend/
-│   ├── public/           # Favicon and preset avatars
+│   ├── public/           # Favicon, preset avatars and sample images
 │   ├── src/
 │   │   ├── components/   # App shell, feed, radar, dialogs and shared UI
 │   │   ├── hooks/        # Data fetching: auth, posts, users, notifications
@@ -200,7 +223,6 @@ Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collectio
 
 ## Current limitations
 
-- **Deployment:** Express doesn't serve the built frontend and CORS isn't enabled, so the app only runs through Vite's proxy (`npm run dev` or `npm run preview` in `frontend`). Hosting it needs one of those two added.
 - **Notifications:** they don't record which post was liked. Unliking or unfollowing doesn't remove a notification, so liking or following again creates another one.
 - **Image uploads:** requests can't exceed 5 MB, so base64 images over about 3.7 MB are rejected if you call the API directly. The frontend resizes images to fit, and image URLs aren't affected.
 - **Missing endpoints:** there's no search, trending, direct messaging, follower lists or pagination, so the interface doesn't offer them and feeds load every post.
