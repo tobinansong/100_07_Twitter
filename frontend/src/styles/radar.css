@@ -1,0 +1,204 @@
+.radar {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(143, 228, 255, 0.08), rgba(143, 228, 255, 0.015) 64%, transparent 72%);
+}
+
+.radar--fast {
+  --sweep: 1.3s;
+}
+
+.radar__grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.radar__grid circle,
+.radar__grid path {
+  stroke: var(--line-strong);
+  vector-effect: non-scaling-stroke;
+}
+
+.radar__grid .radar__ticks {
+  stroke: var(--ion);
+  stroke-opacity: 0.55;
+  stroke-width: 5;
+  vector-effect: none;
+}
+
+/* The bright edge sits at 0deg, so it leads the fade as the sweep turns clockwise. */
+.radar__sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 240deg,
+    rgba(143, 228, 255, 0.02) 240deg,
+    rgba(143, 228, 255, 0.32) 360deg
+  );
+  animation: spin var(--sweep) linear infinite;
+}
+
+.radar__sweep::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 50%;
+  background: linear-gradient(var(--ion), rgba(143, 228, 255, 0.1));
+}
+
+.radar__you {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 50%;
+  background: var(--plasma);
+  box-shadow: 0 0 10px var(--plasma-glow);
+}
+
+/* Each blip flares as the sweep crosses its bearing, then fades like old radar phosphor. */
+.blip {
+  position: absolute;
+  top: calc(50% + var(--y) * 50%);
+  left: calc(50% + var(--x) * 50%);
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  margin: -12px;
+}
+
+.blip__dot {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--ion);
+  box-shadow: 0 0 10px var(--ion-glow);
+  animation: blip var(--sweep) linear infinite;
+  animation-delay: calc(var(--turn) * var(--sweep) - var(--sweep));
+}
+
+.blip__code {
+  position: absolute;
+  top: 50%;
+  left: 21px;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.blip:hover .blip__code,
+.blip.is-active .blip__code {
+  color: var(--plasma-bright);
+}
+
+.blip:hover .blip__dot,
+.blip.is-active .blip__dot {
+  background: var(--plasma);
+  box-shadow: 0 0 14px var(--plasma-glow);
+  opacity: 1;
+  transform: scale(1.4);
+  animation: none;
+}
+
+@keyframes blip {
+  0% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  10% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  72%,
+  100% {
+    opacity: 0.34;
+    transform: scale(1);
+  }
+}
+
+/* Contacts panel */
+.contacts {
+  --cut: 16px;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 12px;
+}
+
+.contacts__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.contacts__title {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.radar.contacts__radar {
+  width: min(216px, 100%);
+}
+
+.contacts__note {
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.contacts__list {
+  display: grid;
+  margin-inline: -6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.contact {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px;
+  transition: background-color 0.16s;
+}
+
+.contact.is-active {
+  background: var(--ion-wash);
+}
+
+.contact__code {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+}
+
+.contact.is-active .contact__code {
+  color: var(--plasma-bright);
+}
+
+.contact__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.contact__who:hover .contact__name {
+  color: var(--ion);
+}

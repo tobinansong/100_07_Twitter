@@ -1,0 +1,45 @@
+/* The rule behind the palette: cool ion blue is information, hot plasma orange is action. */
+:root {
+  color-scheme: dark;
+
+  --void: #05070c;
+  --hull: #0a0e15;
+  --hull-raised: #10161f;
+  --veil: rgba(5, 7, 12, 0.8);
+
+  --line: rgba(166, 205, 230, 0.13);
+  --line-strong: rgba(166, 205, 230, 0.28);
+  --line-input: rgba(166, 205, 230, 0.5);
+
+  --ink: #e9eff5;
+  --ink-2: #a3b1be;
+  --ink-3: #7f8d9a;
+
+  --ion: #8fe4ff;
+  --ion-wash: rgba(143, 228, 255, 0.07);
+  --ion-glow: rgba(143, 228, 255, 0.4);
+
+  --plasma: #ff6a2b;
+  --plasma-bright: #ff8b54;
+  --plasma-wash: rgba(255, 106, 43, 0.09);
+  --plasma-glow: rgba(255, 106, 43, 0.5);
+  --plasma-ink: #170702;
+
+  --alarm: #ff6b85;
+
+  --font-display: "Michroma", "Eurostile", "Bank Gothic", "Segoe UI", sans-serif;
+  --font-body: "Saira", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Martian Mono", "Cascadia Mono", Consolas, monospace;
+
+  --strip-h: 46px;
+  --pad: 20px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --sweep: 6s;
+}
+
+@media (max-width: 759px) {
+  :root {
+    --pad: 16px;
+    --strip-h: 50px;
+  }
+}

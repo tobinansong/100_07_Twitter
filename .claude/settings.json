@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "mcp__claude-in-chrome__tabs_context_mcp",
-      "ClaudeInChromeDomain(cloud.mongodb.com)"
+      "ClaudeInChromeDomain(cloud.mongodb.com)",
+      "mcp__claude-in-chrome__tabs_create_mcp",
+      "ClaudeInChromeDomain(go.postman.co)",
+      "ClaudeInChromeDomain(cloudy-satellite-293121.postman.co)",
+      "ClaudeInChromeDomain(console.cloudinary.com)"
     ]
   }
 }

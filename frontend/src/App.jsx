@@ -1,122 +1,55 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router";
+import AppShell from "./components/AppShell.jsx";
+import BootScreen from "./components/BootScreen.jsx";
+import Toaster from "./components/Toaster.jsx";
+import { useAuthUser } from "./hooks/useAuth.js";
+import AuthPage from "./pages/AuthPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 
-function App() {
-  const [count, setCount] = useState(0)
+function RequireAuth() {
+  const { data: me, isPending, isError, error, refetch, isFetching } = useAuthUser();
+  const location = useLocation();
+
+  // A failed background refresh shouldn't interrupt someone who's already logged in.
+  if (me) return <AppShell />;
+  if (isPending) return <BootScreen />;
+  if (isError) return <BootScreen error={error} onRetry={refetch} retrying={isFetching} />;
+
+  return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+}
+
+function GuestOnly() {
+  const { data: me, isPending, isError, error, refetch, isFetching } = useAuthUser();
+  const location = useLocation();
+
+  if (me) return <Navigate to={location.state?.from ?? "/"} replace />;
+  if (isPending) return <BootScreen />;
+  if (isError) return <BootScreen error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <Outlet />
+      <Toaster />
     </>
-  )
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <Routes>
+      <Route element={<GuestOnly />}>
+        <Route path="login" element={<AuthPage mode="login" />} />
+        <Route path="signup" element={<AuthPage mode="signup" />} />
+      </Route>
+      <Route element={<RequireAuth />}>
+        <Route index element={<HomePage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="profile/:username" element={<ProfilePage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  );
+}

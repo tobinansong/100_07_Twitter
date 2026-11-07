@@ -1,8 +1,16 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+import {
+  destroyImage,
+  isImageSource,
+  uploadImage,
+} from "../lib/utils/cloudinaryImage.js";
+import Notification from "../models/notification.model.js";
 import User from "../models/user.models.js";
 
 const SUGGESTED_USERS_LIMIT = 4;
+// Preset avatars ship with the frontend, so they're stored as paths instead of being uploaded.
+const PRESET_AVATAR_REGEX = /^\/avatars\/[\w-]+\.png$/;
 const EDITABLE_TEXT_FIELDS = [
   "fullName",
   "username",
@@ -14,6 +22,20 @@ const EDITABLE_TEXT_FIELDS = [
   "currentPassword",
   "newPassword",
 ];
+
+// "" clears an image, and sending the stored value again leaves it alone.
+const isAcceptableImage = (value, current) =>
+  value === undefined || value === "" || value === current || isImageSource(value);
+
+// Returns the value to store, adding anything uploaded to `uploads` for cleanup if the request fails.
+const storeImage = async (value, current, uploads) => {
+  if (value === undefined || value === current) return current;
+  if (!isImageSource(value)) return value;
+
+  const url = await uploadImage(value);
+  uploads.push(url);
+  return url;
+};
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -60,7 +82,7 @@ export const followUnfollowUser = async (req, res) => {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
-    if (id === req.userId) {
+    if (req.userId.equals(id)) {
       return res.status(400).json({ error: "You can't follow yourself" });
     }
 
@@ -88,6 +110,14 @@ export const followUnfollowUser = async (req, res) => {
       ),
     ]);
 
+    if (!isFollowing) {
+      await Notification.create({
+        from: currentUser._id,
+        to: targetUser._id,
+        type: "follow",
+      });
+    }
+
     res.status(200).json({
       message: isFollowing
         ? "User unfollowed successfully"
@@ -100,6 +130,8 @@ export const followUnfollowUser = async (req, res) => {
 };
 
 export const updateUserProfile = async (req, res) => {
+  const uploads = [];
+
   try {
     // Express 5 leaves req.body undefined when a request has no parsed body.
     const body = req.body ?? {};
@@ -126,6 +158,13 @@ export const updateUserProfile = async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    if (
+      !(isAcceptableImage(profileImg, user.profileImg) || PRESET_AVATAR_REGEX.test(profileImg)) ||
+      !isAcceptableImage(coverImg, user.coverImg)
+    ) {
+      return res.status(400).json({ error: "Invalid image" });
     }
 
     if (currentPassword || newPassword) {
@@ -170,21 +209,47 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
+    const previousImages = [user.profileImg, user.coverImg];
+
     // Required fields keep their value when blank; optional ones can be cleared with "".
     user.fullName = fullName || user.fullName;
     user.username = username || user.username;
     user.email = email || user.email;
     user.bio = bio ?? user.bio;
     user.link = link ?? user.link;
-    user.profileImg = profileImg ?? user.profileImg;
-    user.coverImg = coverImg ?? user.coverImg;
+    // Uploaded after every check above, so a rejected request doesn't upload anything.
+    user.profileImg = await storeImage(profileImg, user.profileImg, uploads);
+    user.coverImg = await storeImage(coverImg, user.coverImg, uploads);
 
     await user.save();
+
+    // The profile is already saved, so a failed cleanup only leaves an unused image behind.
+    await Promise.all(
+      previousImages
+        .filter((url) => url && url !== user.profileImg && url !== user.coverImg)
+        .map((url) =>
+          destroyImage(url).catch((error) =>
+            console.error(
+              `Error removing replaced image: ${error.error?.message ?? error.message}`
+            )
+          )
+        )
+    );
 
     const { password, ...userResponse } = user.toObject();
     res.status(200).json(userResponse);
   } catch (error) {
-    console.error(`Error in updateUserProfile controller: ${error.message}`);
+    // Nothing was saved, so nothing points at what this request uploaded.
+    await Promise.allSettled(uploads.map(destroyImage));
+
+    // Cloudinary rejects with plain objects, using http_code 400 for images it can't read.
+    if (error.http_code === 400) {
+      return res.status(400).json({ error: "Invalid image" });
+    }
+
+    console.error(
+      `Error in updateUserProfile controller: ${error.error?.message ?? error.message}`
+    );
     res.status(500).json({ error: "Internal server error" });
   }
 };
