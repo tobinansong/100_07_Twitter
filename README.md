@@ -1,14 +1,12 @@
 # Twitter Clone
 
-A Twitter-style social media backend with accounts, profiles, follows, posts, likes, comments and image uploads. Built as a learning project with Express and MongoDB.
+A Twitter-style social network called Perigee, with accounts, profiles, follows, posts, likes, comments, notifications and image uploads. Built as a learning project with React, Express and MongoDB.
 
-![Node.js](https://img.shields.io/badge/Node.js-20.19%2B-339933?logo=nodedotjs&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22.22%2B-339933?logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%209-47A248?logo=mongodb&logoColor=white)
 ![Cloudinary](https://img.shields.io/badge/Cloudinary-images-3448C5?logo=cloudinary&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-
-> **Status:** the REST API is in place. The `frontend` folder is still the Vite + React starter template and isn't connected to the API yet. See [Current limitations](#current-limitations).
 
 ## Features
 
@@ -18,9 +16,10 @@ A Twitter-style social media backend with accounts, profiles, follows, posts, li
 - **Social graph:** follow and unfollow users, and get suggestions for who to follow
 - **Posts:** create posts with text, an image or both, then like, comment on and delete them
 - **Feeds:** browse all posts, posts from people you follow, one user's posts, or a user's liked posts
-- **Notifications:** see who followed you or liked your posts, and clear your notifications
-- **Images:** post images are uploaded to Cloudinary, and removed when the post is deleted
+- **Notifications:** see who followed you or liked your posts, with an unread badge, and clear your notifications
+- **Images:** post images are compressed in the browser, uploaded to Cloudinary, and removed when the post is deleted
 - **Privacy:** password hashes are never returned, and other users' email addresses are hidden
+- **Interface:** a responsive orbital console design that works from phones up to wide monitors
 
 ## Tech stack
 
@@ -30,13 +29,13 @@ A Twitter-style social media backend with accounts, profiles, follows, posts, li
 | Database | MongoDB, Mongoose 9 |
 | Authentication | JSON Web Tokens, bcryptjs, cookie-parser |
 | Image storage | Cloudinary |
-| Frontend (starter only) | React 19, Vite 8 |
+| Frontend | React 19, Vite 8, React Router 8, TanStack Query 5, hand-written CSS |
 
 ## Getting started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 20.19 or newer (the frontend's Vite needs 20.19+ or 22.12+)
+- [Node.js](https://nodejs.org/) 22.22 or newer (React Router 8's minimum)
 - A MongoDB database, such as a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
 - A [Cloudinary](https://cloudinary.com/) account, for post images
 
@@ -46,16 +45,26 @@ A Twitter-style social media backend with accounts, profiles, follows, posts, li
 git clone https://github.com/tobinansong/100_07_Twitter.git
 cd 100_07_Twitter
 npm install
+npm install --prefix frontend
 cp .env.example .env    # Windows Command Prompt: copy .env.example .env
 ```
 
-Fill in `.env` using the table below, then start the API:
+Fill in `.env` using the table below.
+
+### Running the app
+
+The API and the frontend run as two processes, so use two terminals:
 
 ```bash
+# Terminal 1: the API, at http://localhost:5000
+npm run dev
+
+# Terminal 2: the frontend, at http://localhost:3000
+cd frontend
 npm run dev
 ```
 
-The API runs at `http://localhost:5000`. Use `npm start` to run it without auto-reload.
+Open `http://localhost:3000`. Vite forwards every `/api` request to port 5000, so the browser sees one origin and the login cookie works. If you change `PORT`, change the proxy target in `frontend/vite.config.js` to match. Use `npm start` to run the API without auto-reload.
 
 ### Environment variables
 
@@ -75,15 +84,23 @@ To generate a `JWT_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### Running the frontend starter
+## Interface
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+The design is a mission console in orbit. Cool ion blue marks information, and hot plasma orange marks anything you can act on or that needs attention. All the design tokens are in `frontend/src/styles/tokens.css`, and the product name is set in `frontend/src/lib/brand.js`.
 
-Vite prints the local URL when it starts, usually `http://localhost:5173`.
+| Route | Screen |
+| --- | --- |
+| `/login`, `/signup` | Log in or create an account |
+| `/` | Composer plus the All and Following feeds (`?feed=following`) |
+| `/notifications` | Follows and likes, with new ones highlighted |
+| `/profile/:username` | Profile, Posts and Likes tabs (`?tab=likes`), follow or edit |
+
+A few things work around how the API behaves:
+
+- **Image size:** requests are limited to 100 KB, so `frontend/src/lib/image.js` shrinks images in the browser until they fit. A large or detailed photo can lose visible quality.
+- **Unread badge:** `GET /api/notifications` marks everything as read, so polling it can't show what's unread. The browser remembers the newest notification it has shown instead, in `localStorage`, so unread state isn't shared between devices.
+- **Radar:** suggested users are drawn as blips. Their position comes from their user id, and the rescan button asks the API for a new random sample.
+- **Limits set by the interface:** the API doesn't limit lengths, so the 280-character limit on posts and replies and the 160-character limit on bios only apply in the frontend.
 
 ## API reference
 
@@ -163,17 +180,27 @@ Import [`twitter_clone.postman_collection.json`](twitter_clone.postman_collectio
 │   ├── models/           # User, Post, Notification schemas
 │   ├── routes/           # Route definitions: auth, user, post, notification
 │   └── server.js         # App entry point
-├── frontend/             # Vite + React starter
+├── frontend/
+│   ├── public/           # Favicon and preset avatars
+│   ├── src/
+│   │   ├── components/   # App shell, feed, radar, dialogs and shared UI
+│   │   ├── hooks/        # Data fetching: auth, posts, users, notifications
+│   │   ├── lib/          # API client, image compression, formatting, toasts
+│   │   ├── pages/        # Auth, home, notifications, profile, not found
+│   │   └── styles/       # Design tokens and component styles
+│   └── vite.config.js    # Dev server port and /api proxy
 ├── .env.example          # Environment variable template
+├── notifications.postman_collection.json
 └── twitter_clone.postman_collection.json
 ```
 
 ## Current limitations
 
-- **Frontend:** it's the unmodified starter template and makes no API calls. The `cors` package is installed but not enabled yet.
+- **Deployment:** Express doesn't serve the built frontend and CORS isn't enabled, so the app only runs through Vite's proxy (`npm run dev` or `npm run preview` in `frontend`). Hosting it needs one of those two added.
 - **Notifications:** they don't record which post was liked. Unliking or unfollowing doesn't remove a notification, so liking or following again creates another one.
-- **Profile images:** `profileImg` and `coverImg` are saved as plain text. Only post images are uploaded to Cloudinary.
-- **Base64 images:** Express's default 100 KB request limit applies, so larger base64 images are rejected. Image URLs aren't affected.
+- **Profile images:** `profileImg` and `coverImg` are saved as plain text, and only post images are uploaded to Cloudinary. Uploaded avatars and covers are heavily compressed and stored in MongoDB as base64, and they're sent with every post in a feed, so they make feed responses larger.
+- **Base64 images:** Express's default 100 KB request limit applies. The frontend compresses images to fit, but larger uploads through the API directly are rejected. Image URLs aren't affected.
+- **Missing endpoints:** there's no search, trending, direct messaging, follower lists or pagination, so the interface doesn't offer them and feeds load every post.
 - **Tests:** there's no automated test suite yet.
 
 ## License
